@@ -14,12 +14,20 @@ int FALSE_BTN_PIN = 3;
 int trueButtonState = 0;
 int falseButtonState = 0;
 
-int unlocktime = 5000;
-bool acceptingInput = false;
+// delays
+int unlocktime = 3000;
+
+String question = "";
+boolean answer = false;
+
+// state machine
+enum states {awaitingResponse, armed, gettingQuestionAnswer, unlocked};
+states state;
 
 void setup()
 {
   Serial.begin(9600);
+  Serial.println("begin");
 
   // setup LED pins
   pinMode(RED_LED_PIN, OUTPUT);
@@ -28,9 +36,7 @@ void setup()
   pinMode(2, INPUT);
   pinMode(3, INPUT);
 
-  // temp stuff
-  acceptingInput = true;
-  //unlock();
+  rearm();
 }
 
 void loop()
@@ -38,28 +44,101 @@ void loop()
   trueButtonState = digitalRead(2);
   falseButtonState = digitalRead(3);
 
-  if (trueButtonState == HIGH && acceptingInput) {
-    acceptingInput = false;
-    Serial.println("input: TRUE");
-    unlock();
-  }
-  if (falseButtonState == HIGH && acceptingInput) {
-    acceptingInput = false;
-    Serial.println("input: FALSE");
-    unlock();
+  switch (state) {
+    case awaitingResponse: // wait for answer from user
+      if (trueButtonState == HIGH) {
+        Serial.println("input: TRUE");
+        // if TRUE is the correct answer unlock door
+        if(answer == true) {
+          Serial.println("CORRECT!!!! :D");
+          state = unlocked;
+          unlock();
+        }
+        else {
+          Serial.println("WRONG!!!! >:(");
+          flashIncorrect();
+          askQuestion();
+        }
+        break;
+      }
+      else if (falseButtonState == HIGH) {
+        // if FALSE is the correct answer unlock door
+        Serial.println("input: FALSE");
+        if(answer == false) {
+          Serial.println("CORRECT!!!! :D");
+          state = unlocked;
+          unlock();
+        }
+        else{
+          Serial.println("WRONG!!!! >:(");
+          flashIncorrect();
+          askQuestion();
+        }
+        break;
+      }
+      else {
+        break;
+      }
+    
+    case armed:
+      if (falseButtonState == HIGH || trueButtonState == HIGH) {
+        state = gettingQuestionAnswer;
+        getQuestionAnswer();
+      }
+      break;
+
+    default:
+      break;
   }
 
   delay(10);
 }
 
+// flashes red light (also creates delay for an incorrect button press)
+void flashIncorrect() {
+  for(int i = 0; i < 4; i++) {
+    digitalWrite(RED_LED_PIN, LOW);
+    delay(200);
+    digitalWrite(RED_LED_PIN, HIGH);
+    delay(200);
+  }
+}
+
+void getQuestionAnswer() {
+  Serial.println("getting Q/A");
+
+  question = "Is Mount Everest the tallest mountain";
+  answer = true;
+
+  // this function will take time in the future when API is implemented
+  delay(1000);
+
+  // once q/a has been recieved prompt user
+  askQuestion();
+}
+
+void askQuestion() {
+  Serial.println("asking question");
+
+  // output question
+  Serial.print(question);
+  Serial.println("?");
+
+  // update state
+  state = awaitingResponse;
+}
+
 // lock door
-void lock()
+void rearm()
 {
-  Serial.println("locking");
+  Serial.println("arming");
 
   // update LEDs
   digitalWrite(RED_LED_PIN, HIGH);
   digitalWrite(GREEN_LED_PIN, LOW);
+
+  // update state
+  state = armed;
 }
 
 //unlock door
@@ -73,8 +152,5 @@ void unlock()
 
   delay(unlocktime);
 
-  lock();
-
-  //temp
-  acceptingInput = true;
+  rearm();
 }
