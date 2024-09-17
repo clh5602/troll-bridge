@@ -5,6 +5,10 @@
   controls the troll bridge lock mechanism
 */
 
+#include <Servo.h>
+int pos = 0;
+Servo servo_10;
+
 int RED_LED_PIN = 9;
 int GREEN_LED_PIN = 8;
 
@@ -28,6 +32,8 @@ void setup()
 {
   Serial.begin(9600);
   Serial.println("begin");
+
+  servo_10.attach(10, 500, 2500);
 
   // setup LED pins
   pinMode(RED_LED_PIN, OUTPUT);
@@ -139,6 +145,9 @@ void rearm()
 
   // update state
   state = armed;
+
+  Serial.println("servo set to 0");
+  servo_10.write(0);
 }
 
 //unlock door
@@ -149,6 +158,9 @@ void unlock()
   // update LEDs
   digitalWrite(GREEN_LED_PIN, HIGH);
   digitalWrite(RED_LED_PIN, LOW);
+
+  Serial.println("servo set to 90");
+  servo_10.write(90);
 
   delay(unlocktime);
 
