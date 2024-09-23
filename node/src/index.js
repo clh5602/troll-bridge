@@ -1,5 +1,6 @@
 const express = require('express');
 const axios = require('axios');
+const { writeToSerial } = require('./serialComm');
 require('dotenv').config();
 
 const app = express();
@@ -31,6 +32,7 @@ app.get('/trivia', async (req, res) => {
         res.json(JSON.parse(triviaData));
 
         /*Add the serialport functionality here*/
+        // expecting NO \n chars, let's make it a comma separated list with q1, a1, q2, a2, q3, a3, ...
 
     } catch (error) {
         console.error('Error fetching trivia data:', error);
